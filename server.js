@@ -15,30 +15,37 @@ app.post("/api/roblox", (req,res)=>{
   res.send({status:"saved"})
 })
 
+app.get("/api/test", (req,res)=>{
+  res.send(players)
+})
+
 app.get("/api/profile/:name", async (req,res)=>{
   const player = players[req.params.name]
-  if(!player) return res.send({error:"No data yet"})
+  if(!player) return res.send({ error: "No data yet" })
 
   const prompt = `
-You are a cute gothic-style Adopt Me profile analyzer.
+You are a soft gothic cute Adopt Me profile analyzer.
 
 Player data:
 ${JSON.stringify(player)}
 
-Generate:
-- vibe (short aesthetic label)
+Return JSON with:
+- vibe
 - progressScore (0–100)
 - flexLevel (Low, Medium, High, Insane)
-- personality (soft gothic cute tone)
-Return JSON only.
+- personality
 `
 
-  const ai = await openai.chat.completions.create({
-    model: "gpt-5.2",
-    messages: [{ role: "user", content: prompt }]
-  })
+  try {
+    const ai = await openai.chat.completions.create({
+      model: "gpt-5.2",
+      messages: [{ role: "user", content: prompt }]
+    })
 
-  res.send(JSON.parse(ai.choices[0].message.content))
+    res.send(JSON.parse(ai.choices[0].message.content))
+  } catch (err) {
+    res.send({ error: "AI failed", details: err.message })
+  }
 })
 
 app.listen(3000)

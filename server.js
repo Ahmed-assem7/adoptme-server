@@ -6,26 +6,43 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-// OpenAI reads OPENAI_KEY automatically from Railway env
-const openai = new OpenAI()
+// Make sure Railway has OPENAI_API_KEY set
+if (!process.env.OPENAI_API_KEY) {
+  console.error("❌ Missing OPENAI_API_KEY environment variable")
+}
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+})
 
 let players = {}
 
 // Roblox sends data here
 app.post("/api/roblox", (req, res) => {
-  players[req.body.username] = req.body
+  const data = req.body
+  if (!data.username) {
+    return res.status(400).send({ error: "Missing username" })
+  }
+
+  players[data.username.toLowerCase()] = data
+  console.log("Saved:", data.username)
+
   res.send({ status: "saved" })
 })
 
 // Debug endpoint
 app.get("/api/test", (req, res) => {
-  res.json(players)
+  res.send(players)
 })
 
 // AI profile endpoint
 app.get("/api/profile/:name", async (req, res) => {
-  const player = players[req.params.name]
-  if (!player) return res.json({ error: "No data yet" })
+  const name = req.params.name.toLowerCase()
+  const player = players[name]
+
+  if (!player) {
+    return res.send({ error: "No data yet. Join the Roblox game first." })
+  }
 
   const prompt = `
 You are a soft gothic cute Adopt Me profile analyzer.
@@ -34,27 +51,38 @@ Player data:
 ${JSON.stringify(player)}
 
 Return JSON with:
-- vibe
-- progressScore (0–100)
-- flexLevel (Low, Medium, High, Insane)
-- personality
+vibe
+progressScore (0–100)
+flexLevel (Low, Medium, High, Insane)
+personality
 `
 
   try {
-    const ai = await openai.responses.create({
-      model: "gpt-5.2",
-      input: prompt
+    const ai = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7
     })
 
-    const text = ai.output_text
-    res.json(JSON.parse(text))
+    const text = ai.choices[0].message.content
+
+    // Try to parse AI JSON safely
+    let parsed
+    try {
+      parsed = JSON.parse(text)
+    } catch {
+      return res.send({ error: "AI returned invalid JSON", raw: text })
+    }
+
+    res.send(parsed)
+
   } catch (err) {
-    res.json({ error: "AI failed", details: err.message })
+    console.error("AI ERROR:", err.message)
+    res.status(500).send({ error: "AI failed", details: err.message })
   }
 })
 
-// Railway requires process.env.PORT
+// VERY IMPORTANT: Railway port
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
-  console.log("Server running on", PORT)
-})
+  console.log("Server running on port", PORT)

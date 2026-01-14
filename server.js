@@ -6,22 +6,26 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY })
+// OpenAI reads OPENAI_KEY automatically from Railway env
+const openai = new OpenAI()
 
 let players = {}
 
-app.post("/api/roblox", (req,res)=>{
+// Roblox sends data here
+app.post("/api/roblox", (req, res) => {
   players[req.body.username] = req.body
-  res.send({status:"saved"})
+  res.send({ status: "saved" })
 })
 
-app.get("/api/test", (req,res)=>{
-  res.send(players)
+// Debug endpoint
+app.get("/api/test", (req, res) => {
+  res.json(players)
 })
 
-app.get("/api/profile/:name", async (req,res)=>{
+// AI profile endpoint
+app.get("/api/profile/:name", async (req, res) => {
   const player = players[req.params.name]
-  if(!player) return res.send({ error: "No data yet" })
+  if (!player) return res.json({ error: "No data yet" })
 
   const prompt = `
 You are a soft gothic cute Adopt Me profile analyzer.
@@ -37,17 +41,20 @@ Return JSON with:
 `
 
   try {
-    cconst ai = await openai.responses.create({
-  model: "gpt-5.2",
-  input: prompt
+    const ai = await openai.responses.create({
+      model: "gpt-5.2",
+      input: prompt
+    })
+
+    const text = ai.output_text
+    res.json(JSON.parse(text))
+  } catch (err) {
+    res.json({ error: "AI failed", details: err.message })
+  }
 })
 
-const text = ai.output_text
-res.send(JSON.parse(text))
-})
-
+// Railway requires process.env.PORT
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
   console.log("Server running on", PORT)
 })
-

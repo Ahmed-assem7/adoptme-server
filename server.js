@@ -37,15 +37,13 @@ Return JSON with:
 `
 
   try {
-    const ai = await openai.chat.completions.create({
-      model: "gpt-5.2",
-      messages: [{ role: "user", content: prompt }]
-    })
+    cconst ai = await openai.responses.create({
+  model: "gpt-5.2",
+  input: prompt
+})
 
-    res.send(JSON.parse(ai.choices[0].message.content))
-  } catch (err) {
-    res.send({ error: "AI failed", details: err.message })
-  }
+const text = ai.output_text
+res.send(JSON.parse(text))
 })
 
 app.listen(3000)

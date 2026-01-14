@@ -15,8 +15,8 @@ app.get("/api/test", (req, res) => {
   res.json({ status: "server alive" })
 })
 
-// IMPORTANT — use Railway's port
-const PORT = process.env.PORT
+// IMPORTANT — Railway-safe port handling
+const PORT = Number(process.env.PORT) || 3000
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log("Server running on port", PORT)

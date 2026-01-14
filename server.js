@@ -6,7 +6,9 @@ app.get("/", (req, res) => {
   res.send("SERVER IS ALIVE")
 })
 
+// 🚨 DO NOT hardcode ports
 const PORT = process.env.PORT || 3000
+
 app.listen(PORT, () => {
   console.log("Server running on", PORT)
 })
